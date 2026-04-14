@@ -1,3 +1,13 @@
 spring:
-  application:
-    name: Hebergement
+  datasource:
+    url: jdbc:mysql://localhost:3306/foyer_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: rahma
+    password: "12570"
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
