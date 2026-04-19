@@ -1,5 +1,6 @@
 package com.university.Hebergement.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,5 +21,6 @@ public class Foyer {
     private Long capaciteFoyer;
 
     @OneToMany(mappedBy = "foyer", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("foyer")  // ✅ affiche les blocs mais ignore leur référence au foyer
     private List<Bloc> blocs = new ArrayList<>();
 }
