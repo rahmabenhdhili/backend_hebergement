@@ -5,6 +5,8 @@ import com.university.Hebergement.entities.Etudiant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,13 +34,20 @@ public class EtudiantController {
     }
 
     @PostMapping("/create")
-    public void createEtudiant(@RequestBody Etudiant etudiant){
+    public ResponseEntity<?> createEtudiant(@RequestBody Etudiant etudiant) {
 
-         etudiantService.addEtudiant(etudiant);
+        if (etudiantService.existsById(etudiant.getCin())) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body("CIN déjà existant");
+        }
+
+        Etudiant saved = etudiantService.addEtudiant(etudiant);
+        return ResponseEntity.ok(saved);
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable("id") Long id){
-        etudiantService.deleteEtudiant(id);
+    @DeleteMapping("/{cin}")
+    public void delete(@PathVariable("cin") Long cin){
+        etudiantService.deleteEtudiant(cin);
     }
 }

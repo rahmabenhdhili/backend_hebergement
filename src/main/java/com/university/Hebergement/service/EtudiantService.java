@@ -27,16 +27,38 @@ public class EtudiantService implements IEtudiantService {
 
     @Override
     public Etudiant updateEtudiant(Etudiant etudiant) {
+        Etudiant existing = etudiantRepository.findById((etudiant.getCin())).orElseThrow(() -> new RuntimeException("Etudiant not found"));
+
+        existing.setNom(etudiant.getNom());
+        existing.setPrenom(etudiant.getPrenom());
+        existing.setDateNaissance(etudiant.getDateNaissance());
+
+        existing.setEcole(etudiant.getEcole());
         return etudiantRepository.save(etudiant);
     }
 
     @Override
-    public void addEtudiant(Etudiant etudiant) {
-         etudiantRepository.save(etudiant);
+    public Etudiant addEtudiant(Etudiant etudiant){
+        if (etudiant.getCin() == null) {
+            throw new RuntimeException("CIN obligatoire");
+        }
+
+        boolean exists = etudiantRepository.existsById(etudiant.getCin());
+
+        if (exists) {
+            throw new RuntimeException("CIN déjà existant");
+        }
+
+        return etudiantRepository.save(etudiant);
     }
 
     @Override
-    public void deleteEtudiant(Long id) {
-        etudiantRepository.deleteById(id);
+    public boolean existsById(Long id) {
+        return etudiantRepository.existsById(id);
+    }
+
+    @Override
+    public void deleteEtudiant(Long cin) {
+        etudiantRepository.deleteById(cin);
     }
 }
