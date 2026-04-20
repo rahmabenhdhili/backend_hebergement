@@ -6,6 +6,7 @@ import com.university.Hebergement.service.FoyerService;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/foyer")
 public class FoyerController {

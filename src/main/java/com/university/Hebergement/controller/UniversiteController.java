@@ -39,4 +39,12 @@ public class UniversiteController {
     public void deleteUniversite(@PathVariable Long id) {
         universiteService.deleteUniversite(id);
     }
+
+    // NOUVEAU : affecter un foyer à une université (Service 01 du PDF)
+    @PutMapping("/affecterFoyerAUniversite")
+    public Universite affecterFoyerAUniversite(
+            @RequestParam Long idFoyer,
+            @RequestParam String nomUniversite) {
+        return universiteService.affecterFoyerAUniversite(idFoyer, nomUniversite);
+    }
 }
