@@ -43,6 +43,7 @@ public class BlocController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Bloc> updateBloc(@PathVariable Long id, @RequestBody Bloc bloc) {
+        bloc.setIdBloc(id);           // ← Très important pour Hibernate
         return ResponseEntity.ok(blocService.updateBloc(id, bloc));
     }
 

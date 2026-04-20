@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter @Setter
+@Getter
+@Setter
 public class Bloc {
 
     @Id
@@ -19,10 +20,23 @@ public class Bloc {
     private String nomBloc;
 
     @ManyToOne
-    @JsonIgnoreProperties("blocs")  // ✅ affiche le foyer mais ignore sa liste de blocs
+    @JsonIgnoreProperties("blocs")
     private Foyer foyer;
 
-    @OneToMany(mappedBy = "bloc", cascade = CascadeType.ALL)
-    @JsonIgnoreProperties("bloc")   // ✅ affiche les chambres mais ignore leur référence au bloc
+    @OneToMany(mappedBy = "bloc",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)   // ← AJOUTE ÇA
+    @JsonIgnoreProperties("bloc")
     private List<Chambre> chambres = new ArrayList<>();
+
+    // Méthodes utilitaires recommandées
+    public void addChambre(Chambre chambre) {
+        chambres.add(chambre);
+        chambre.setBloc(this);
+    }
+
+    public void removeChambre(Chambre chambre) {
+        chambres.remove(chambre);
+        chambre.setBloc(null);
+    }
 }

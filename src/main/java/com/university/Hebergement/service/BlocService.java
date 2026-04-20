@@ -2,8 +2,10 @@ package com.university.Hebergement.service;
 
 import com.university.Hebergement.entities.Bloc;
 import com.university.Hebergement.entities.Chambre;
+import com.university.Hebergement.entities.Foyer;   // ← Ajoute cet import
 import com.university.Hebergement.exception.ResourceNotFoundException;
 import com.university.Hebergement.repository.BlocRepository;
+import com.university.Hebergement.repository.FoyerRepository;   // ← Ajoute cet import
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +17,12 @@ import java.util.List;
 public class BlocService implements IBlocService {
 
     private final BlocRepository blocRepository;
+    private final FoyerRepository foyerRepository;   // ← AJOUTÉ
 
     @Autowired
-    public BlocService(BlocRepository blocRepository) {
+    public BlocService(BlocRepository blocRepository, FoyerRepository foyerRepository) {
         this.blocRepository = blocRepository;
+        this.foyerRepository = foyerRepository;
     }
 
     @Override
@@ -41,25 +45,36 @@ public class BlocService implements IBlocService {
     @Transactional(readOnly = true)
     public Bloc getBlocById(Long id) {
         return blocRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Bloc non trouvé avec l'ID : " + id
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("Bloc non trouvé avec l'ID : " + id));
     }
 
     @Override
     public Bloc updateBloc(Long id, Bloc blocDetails) {
-        Bloc existingBloc = getBlocById(id);
+        Bloc existingBloc = blocRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bloc non trouvé avec id: " + id));
 
-        // ✅ Uniquement les champs qui existent dans ton entité Bloc
+        // Mise à jour des champs simples
         existingBloc.setNomBloc(blocDetails.getNomBloc());
-        existingBloc.setFoyer(blocDetails.getFoyer());
 
-        // Mise à jour des chambres si fournies
+        // Mise à jour du Foyer
+        if (blocDetails.getFoyer() != null && blocDetails.getFoyer().getIdFoyer() != null) {
+            Foyer newFoyer = foyerRepository.findById(blocDetails.getFoyer().getIdFoyer())
+                    .orElseThrow(() -> new RuntimeException("Foyer non trouvé avec id: "
+                            + blocDetails.getFoyer().getIdFoyer()));
+            existingBloc.setFoyer(newFoyer);
+        }
+
+        // === GESTION DES CHAMBRES ===
         if (blocDetails.getChambres() != null) {
-            existingBloc.getChambres().clear();
-            for (Chambre chambre : blocDetails.getChambres()) {
-                chambre.setBloc(existingBloc);
-                existingBloc.getChambres().add(chambre);
+            existingBloc.getChambres().clear();   // orphanRemoval doit être activé
+
+            for (Chambre ch : blocDetails.getChambres()) {
+                Chambre newChambre = new Chambre();
+                newChambre.setNumeroChambre(ch.getNumeroChambre());
+                newChambre.setType(ch.getType());
+                newChambre.setBloc(existingBloc);
+
+                existingBloc.getChambres().add(newChambre);
             }
         }
 
