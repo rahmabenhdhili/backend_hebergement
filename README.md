@@ -5,7 +5,6 @@
 This project involves designing and developing a complete information system dedicated to managing university residences.
 
 The main objective is to digitize the administrative processes related to accommodation. The system should streamline room allocation, monitor building capacity, and centralize student reservations.
----
 
 ## 🛠️ Technologies
 
