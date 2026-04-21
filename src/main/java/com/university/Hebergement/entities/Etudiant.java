@@ -23,7 +23,8 @@ public class Etudiant {
     private String nom;
     private String prenom;
     private LocalDate dateNaissance;
-    private String ecole;
+    @ManyToOne
+    private Universite universite;
 
     @ManyToMany(mappedBy = "etudiants")
     private List<Reservation> reservations = new ArrayList<>();

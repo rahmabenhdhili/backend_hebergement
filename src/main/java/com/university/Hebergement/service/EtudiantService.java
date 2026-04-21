@@ -2,6 +2,7 @@ package com.university.Hebergement.service;
 
 import com.university.Hebergement.IService.IEtudiantService;
 import com.university.Hebergement.entities.Etudiant;
+import com.university.Hebergement.entities.Universite;
 import com.university.Hebergement.repository.EtudiantRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import java.util.List;
 public class EtudiantService implements IEtudiantService {
     @Autowired
     EtudiantRepository etudiantRepository;
+    @Autowired
+    private UniversiteService universiteService;
 
     @Override
     public List<Etudiant> getAll() {
@@ -22,7 +25,7 @@ public class EtudiantService implements IEtudiantService {
 
     @Override
     public Etudiant getEtudiantByID(Long id) {
-        return etudiantRepository.findById(id).get();
+        return etudiantRepository.findById(id).orElseThrow(() -> new RuntimeException("Étudiant introuvable: " + id));
     }
 
     @Override
@@ -33,20 +36,29 @@ public class EtudiantService implements IEtudiantService {
         existing.setPrenom(etudiant.getPrenom());
         existing.setDateNaissance(etudiant.getDateNaissance());
 
-        existing.setEcole(etudiant.getEcole());
+        existing.setUniversite(etudiant.getUniversite());
         return etudiantRepository.save(etudiant);
     }
 
     @Override
-    public Etudiant addEtudiant(Etudiant etudiant){
+    public Etudiant addEtudiant(Etudiant etudiant) {
+
         if (etudiant.getCin() == null) {
             throw new RuntimeException("CIN obligatoire");
         }
 
-        boolean exists = etudiantRepository.existsById(etudiant.getCin());
-
-        if (exists) {
+        if (etudiantRepository.existsById(etudiant.getCin())) {
             throw new RuntimeException("CIN déjà existant");
+        }
+
+        // IMPORTANT: attach managed Universite entity
+        if (etudiant.getUniversite() != null &&
+                etudiant.getUniversite().getIdUniversite() != null) {
+
+            Universite u = universiteService.getUniversiteByID(
+                    etudiant.getUniversite().getIdUniversite());
+
+            etudiant.setUniversite(u);
         }
 
         return etudiantRepository.save(etudiant);
