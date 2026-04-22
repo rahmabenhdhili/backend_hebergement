@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/your_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-    username: #{username}
-    password: #{password}
+    url: jdbc:mysql://localhost:3306/foyer_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: rahma
+    password: 12570
 
   jpa:
     hibernate:
