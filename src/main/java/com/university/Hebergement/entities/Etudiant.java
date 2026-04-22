@@ -17,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 public class Etudiant {
 
+    @Getter
     @Id
     private Long cin;
 
