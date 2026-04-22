@@ -29,7 +29,7 @@ public class Bloc {
     @JsonIgnoreProperties("bloc")
     private List<Chambre> chambres = new ArrayList<>();
 
-    // Méthodes utilitaires recommandées
+
     public void addChambre(Chambre chambre) {
         chambres.add(chambre);
         chambre.setBloc(this);
