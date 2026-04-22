@@ -28,24 +28,35 @@ public class UniversiteService implements IUniversiteService {
     }
 
     @Override
+    public void addUniversite(Universite universite) {
+        // Vérifier qu'aucune université n'existe déjà avec ce nom
+        if (universiteRepository.findByNomUniversite(universite.getNomUniversite()).isPresent()) {
+            throw new RuntimeException("Une université avec le nom '"
+                    + universite.getNomUniversite() + "' existe déjà.");
+        }
+        universiteRepository.save(universite);
+    }
+
+    @Override
     public Universite updateUniversite(Universite universite) {
-        // 1. Vérifier que l'id est fourni
         if (universite.getIdUniversite() == null) {
             throw new RuntimeException("L'idUniversite est obligatoire pour la modification");
         }
 
-        // 2. Vérifier que l'université existe en base
         if (!universiteRepository.existsById(universite.getIdUniversite())) {
             throw new RuntimeException("Université introuvable avec l'id : " + universite.getIdUniversite());
         }
 
-        // 3. OK, on peut modifier
-        return universiteRepository.save(universite);
-    }
+        // Vérifier qu'un AUTRE enregistrement n'a pas déjà ce nom
+        universiteRepository.findByNomUniversite(universite.getNomUniversite())
+                .ifPresent(existing -> {
+                    if (!existing.getIdUniversite().equals(universite.getIdUniversite())) {
+                        throw new RuntimeException("Une université avec le nom '"
+                                + universite.getNomUniversite() + "' existe déjà.");
+                    }
+                });
 
-    @Override
-    public void addUniversite(Universite universite) {
-        universiteRepository.save(universite);
+        return universiteRepository.save(universite);
     }
 
     @Override
