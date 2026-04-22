@@ -12,5 +12,5 @@ public interface IUniversiteService {
 
     // NOUVEAU : affecter un foyer à une université
     Universite affecterFoyerAUniversite(Long idFoyer, String nomUniversite);
-
+    Universite desaffecterFoyerAUniversite(long idUniversite);
 }

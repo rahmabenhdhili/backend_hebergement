@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/universite")
 @AllArgsConstructor
@@ -46,5 +46,10 @@ public class UniversiteController {
             @RequestParam Long idFoyer,
             @RequestParam String nomUniversite) {
         return universiteService.affecterFoyerAUniversite(idFoyer, nomUniversite);
+    }
+
+    @PutMapping("/desaffecterFoyerAUniversite/{idUniversite}")
+    public Universite desaffecterFoyerAUniversite(@PathVariable long idUniversite) {
+        return universiteService.desaffecterFoyerAUniversite(idUniversite);
     }
 }
