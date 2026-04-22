@@ -13,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatbotService {
@@ -34,7 +35,6 @@ public class ChatbotService {
 
     public String chat(String userMessage) {
         try {
-            // ✅ Check if DB is empty — never call Ollama with no data
             List<Bloc> blocs = blocRepository.findAll();
             if (blocs == null || blocs.isEmpty()) {
                 return "Aucun bloc n'est encore enregistré dans la plateforme. "
@@ -58,7 +58,7 @@ public class ChatbotService {
 
     private enum Intent {
         CALME,
-        BRUYANT,        // ✅ NOUVEAU — sens inverse de CALME
+        BRUYANT,
         DISPONIBILITE,
         BLOC_INFO,
         FOYER_INFO,
@@ -70,7 +70,6 @@ public class ChatbotService {
     private Intent detectIntent(String message) {
         String m = message.toLowerCase();
 
-        // ✅ BRUYANT détecté AVANT CALME pour éviter tout conflit
         if (containsAny(m, "dérangable", "derangable", "bruyant", "animé", "anime",
                 "agité", "agite", "moins calme", "plus bruyant", "perturbant",
                 "bruit", "agitation", "social", "vivant"))
@@ -100,9 +99,23 @@ public class ChatbotService {
     }
 
     // ════════════════════════════════════════════════════════════
+    //  STEP 1b — FOYER NAME EXTRACTOR
+    //  Détecte si l'utilisateur a mentionné un nom de foyer connu
+    // ════════════════════════════════════════════════════════════
+
+    private String extractFoyerName(String message, List<Bloc> blocs) {
+        String m = message.toLowerCase();
+        return blocs.stream()
+                .filter(b -> b.getFoyer() != null && b.getFoyer().getNomFoyer() != null)
+                .map(b -> b.getFoyer().getNomFoyer())
+                .distinct()
+                .filter(nom -> m.contains(nom.toLowerCase()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    // ════════════════════════════════════════════════════════════
     //  STEP 2 — CONTEXT BUILDER (RAG)
-    //  blocs already fetched in chat() — passed here to avoid
-    //  a second DB query
     // ════════════════════════════════════════════════════════════
 
     private String buildContext(Intent intent, String userMessage, List<Bloc> blocs) {
@@ -110,45 +123,124 @@ public class ChatbotService {
 
         switch (intent) {
 
+            // ── CALME ─────────────────────────────────────────────
             case CALME -> {
-                ctx.append("CLASSEMENT DES BLOCS DU PLUS CALME AU PLUS BRUYANT :\n");
-                ctx.append("(Règle : plus il y a de chambres SIMPLE, plus le bloc est calme)\n\n");
-                blocs.stream()
-                        .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "SIMPLE")))
-                        .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
-                        .forEach(e -> ctx.append(String.format(
-                                "- Bloc %-12s | Simples: %d | Doubles: %d | Triples: %d | Total: %d\n",
-                                e.getKey().getNomBloc(),
-                                countType(e.getKey(), "SIMPLE"),
-                                countType(e.getKey(), "DOUBLE"),
-                                countType(e.getKey(), "TRIPLE"),
-                                e.getKey().getChambres().size()
-                        )));
+                String foyerName = extractFoyerName(userMessage, blocs);
+
+                if (foyerName != null) {
+                    // ✅ Foyer précis mentionné → on filtre
+                    List<Bloc> blocsFiltered = blocs.stream()
+                            .filter(b -> b.getFoyer() != null
+                                    && foyerName.equalsIgnoreCase(b.getFoyer().getNomFoyer()))
+                            .collect(Collectors.toList());
+
+                    ctx.append("CLASSEMENT DES BLOCS DU FOYER « ").append(foyerName)
+                            .append(" » DU PLUS CALME AU PLUS BRUYANT :\n");
+                    ctx.append("(Règle : plus il y a de chambres SIMPLE, plus le bloc est calme)\n\n");
+
+                    if (blocsFiltered.isEmpty()) {
+                        ctx.append("Aucun bloc trouvé pour ce foyer.\n");
+                    } else {
+                        blocsFiltered.stream()
+                                .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "SIMPLE")))
+                                .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
+                                .forEach(e -> ctx.append(String.format(
+                                        "- Bloc %-12s | Foyer: %-15s | Simples: %d | Doubles: %d | Triples: %d | Total: %d\n",
+                                        e.getKey().getNomBloc(),
+                                        foyerName,
+                                        countType(e.getKey(), "SIMPLE"),
+                                        countType(e.getKey(), "DOUBLE"),
+                                        countType(e.getKey(), "TRIPLE"),
+                                        e.getKey().getChambres().size()
+                                )));
+                    }
+
+                } else {
+                    // Pas de foyer → tous les blocs avec leur foyer affiché
+                    ctx.append("CLASSEMENT DE TOUS LES BLOCS DU PLUS CALME AU PLUS BRUYANT :\n");
+                    ctx.append("(Règle : plus il y a de chambres SIMPLE, plus le bloc est calme)\n\n");
+
+                    blocs.stream()
+                            .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "SIMPLE")))
+                            .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
+                            .forEach(e -> {
+                                String foyer = e.getKey().getFoyer() != null
+                                        ? e.getKey().getFoyer().getNomFoyer() : "N/A";
+                                ctx.append(String.format(
+                                        "- Bloc %-12s | Foyer: %-15s | Simples: %d | Doubles: %d | Triples: %d | Total: %d\n",
+                                        e.getKey().getNomBloc(), foyer,
+                                        countType(e.getKey(), "SIMPLE"),
+                                        countType(e.getKey(), "DOUBLE"),
+                                        countType(e.getKey(), "TRIPLE"),
+                                        e.getKey().getChambres().size()
+                                ));
+                            });
+                }
             }
 
-            // ✅ NOUVEAU CAS — BRUYANT
+            // ── BRUYANT ───────────────────────────────────────────
             case BRUYANT -> {
-                ctx.append("CLASSEMENT DES BLOCS DU PLUS BRUYANT AU PLUS CALME :\n");
-                ctx.append("(Règle : plus il y a de chambres TRIPLE, plus le bloc est bruyant/dérangable)\n\n");
-                blocs.stream()
-                        .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "TRIPLE")))
-                        .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
-                        .forEach(e -> ctx.append(String.format(
-                                "- Bloc %-12s | Triples: %d | Doubles: %d | Simples: %d | Total: %d\n",
-                                e.getKey().getNomBloc(),
-                                countType(e.getKey(), "TRIPLE"),
-                                countType(e.getKey(), "DOUBLE"),
-                                countType(e.getKey(), "SIMPLE"),
-                                e.getKey().getChambres().size()
-                        )));
+                String foyerName = extractFoyerName(userMessage, blocs);
+
+                if (foyerName != null) {
+                    // ✅ Foyer précis mentionné → on filtre
+                    List<Bloc> blocsFiltered = blocs.stream()
+                            .filter(b -> b.getFoyer() != null
+                                    && foyerName.equalsIgnoreCase(b.getFoyer().getNomFoyer()))
+                            .collect(Collectors.toList());
+
+                    ctx.append("CLASSEMENT DES BLOCS DU FOYER « ").append(foyerName)
+                            .append(" » DU PLUS BRUYANT AU PLUS CALME :\n");
+                    ctx.append("(Règle : plus il y a de chambres TRIPLE, plus le bloc est bruyant)\n\n");
+
+                    if (blocsFiltered.isEmpty()) {
+                        ctx.append("Aucun bloc trouvé pour ce foyer.\n");
+                    } else {
+                        blocsFiltered.stream()
+                                .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "TRIPLE")))
+                                .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
+                                .forEach(e -> ctx.append(String.format(
+                                        "- Bloc %-12s | Foyer: %-15s | Triples: %d | Doubles: %d | Simples: %d | Total: %d\n",
+                                        e.getKey().getNomBloc(),
+                                        foyerName,
+                                        countType(e.getKey(), "TRIPLE"),
+                                        countType(e.getKey(), "DOUBLE"),
+                                        countType(e.getKey(), "SIMPLE"),
+                                        e.getKey().getChambres().size()
+                                )));
+                    }
+
+                } else {
+                    // Pas de foyer → tous les blocs
+                    ctx.append("CLASSEMENT DE TOUS LES BLOCS DU PLUS BRUYANT AU PLUS CALME :\n");
+                    ctx.append("(Règle : plus il y a de chambres TRIPLE, plus le bloc est bruyant)\n\n");
+
+                    blocs.stream()
+                            .map(b -> new AbstractMap.SimpleEntry<>(b, countType(b, "TRIPLE")))
+                            .sorted((a, z) -> Integer.compare(z.getValue(), a.getValue()))
+                            .forEach(e -> {
+                                String foyer = e.getKey().getFoyer() != null
+                                        ? e.getKey().getFoyer().getNomFoyer() : "N/A";
+                                ctx.append(String.format(
+                                        "- Bloc %-12s | Foyer: %-15s | Triples: %d | Doubles: %d | Simples: %d | Total: %d\n",
+                                        e.getKey().getNomBloc(), foyer,
+                                        countType(e.getKey(), "TRIPLE"),
+                                        countType(e.getKey(), "DOUBLE"),
+                                        countType(e.getKey(), "SIMPLE"),
+                                        e.getKey().getChambres().size()
+                                ));
+                            });
+                }
             }
 
+            // ── DISPONIBILITE ─────────────────────────────────────
             case DISPONIBILITE -> {
                 ctx.append("DISPONIBILITÉ PAR BLOC :\n\n");
                 for (Bloc b : blocs) {
+                    String foyer = b.getFoyer() != null ? b.getFoyer().getNomFoyer() : "N/A";
                     ctx.append(String.format(
-                            "- Bloc %-12s | Total: %d | Simples: %d | Doubles: %d | Triples: %d\n",
-                            b.getNomBloc(),
+                            "- Bloc %-12s | Foyer: %-15s | Total: %d | Simples: %d | Doubles: %d | Triples: %d\n",
+                            b.getNomBloc(), foyer,
                             b.getChambres().size(),
                             countType(b, "SIMPLE"),
                             countType(b, "DOUBLE"),
@@ -157,6 +249,7 @@ public class ChatbotService {
                 }
             }
 
+            // ── STATS ─────────────────────────────────────────────
             case STATS -> {
                 int totalSimple = 0, totalDouble = 0, totalTriple = 0;
                 for (Bloc b : blocs) {
@@ -164,7 +257,13 @@ public class ChatbotService {
                     totalDouble += countType(b, "DOUBLE");
                     totalTriple += countType(b, "TRIPLE");
                 }
+                long nbFoyers = blocs.stream()
+                        .filter(b -> b.getFoyer() != null)
+                        .map(b -> b.getFoyer().getNomFoyer())
+                        .distinct().count();
+
                 ctx.append("STATISTIQUES GLOBALES DE LA PLATEFORME :\n\n");
+                ctx.append(String.format("- Nombre de foyers     : %d\n", nbFoyers));
                 ctx.append(String.format("- Nombre de blocs      : %d\n", blocs.size()));
                 ctx.append(String.format("- Chambres simples     : %d\n", totalSimple));
                 ctx.append(String.format("- Chambres doubles     : %d\n", totalDouble));
@@ -173,6 +272,7 @@ public class ChatbotService {
                         totalSimple + totalDouble + totalTriple));
             }
 
+            // ── BLOC_INFO ─────────────────────────────────────────
             case BLOC_INFO -> {
                 String lower = userMessage.toLowerCase();
                 boolean found = false;
@@ -190,6 +290,22 @@ public class ChatbotService {
                 }
             }
 
+            // ── FOYER_INFO ────────────────────────────────────────
+            case FOYER_INFO -> {
+                String foyerName = extractFoyerName(userMessage, blocs);
+                if (foyerName != null) {
+                    ctx.append("DÉTAILS DU FOYER « ").append(foyerName).append(" » :\n\n");
+                    blocs.stream()
+                            .filter(b -> b.getFoyer() != null
+                                    && foyerName.equalsIgnoreCase(b.getFoyer().getNomFoyer()))
+                            .forEach(b -> ctx.append(buildBlocDetail(b)));
+                } else {
+                    ctx.append("LISTE DE TOUS LES FOYERS ET LEURS BLOCS :\n\n");
+                    blocs.forEach(b -> ctx.append(buildBlocDetail(b)));
+                }
+            }
+
+            // ── RECOMMENDATION ────────────────────────────────────
             case RECOMMENDATION -> {
                 ctx.append("DONNÉES COMPLÈTES POUR RECOMMANDATION :\n");
                 ctx.append("Règle métier : SIMPLE = environnement calme idéal pour étudier,\n");
@@ -197,18 +313,21 @@ public class ChatbotService {
                 blocs.forEach(b -> ctx.append(buildBlocDetail(b)));
             }
 
+            // ── GENERAL ───────────────────────────────────────────
             default -> {
                 ctx.append("RÉSUMÉ GÉNÉRAL DE LA PLATEFORME PGHU :\n\n");
                 ctx.append(String.format("Nombre total de blocs : %d\n\n", blocs.size()));
-                blocs.forEach(b -> ctx.append(String.format(
-                        "- Bloc %-12s : %d chambres "
-                                + "(Simples: %d, Doubles: %d, Triples: %d)\n",
-                        b.getNomBloc(),
-                        b.getChambres().size(),
-                        countType(b, "SIMPLE"),
-                        countType(b, "DOUBLE"),
-                        countType(b, "TRIPLE")
-                )));
+                blocs.forEach(b -> {
+                    String foyer = b.getFoyer() != null ? b.getFoyer().getNomFoyer() : "N/A";
+                    ctx.append(String.format(
+                            "- Bloc %-12s | Foyer: %-15s : %d chambres (Simples: %d, Doubles: %d, Triples: %d)\n",
+                            b.getNomBloc(), foyer,
+                            b.getChambres().size(),
+                            countType(b, "SIMPLE"),
+                            countType(b, "DOUBLE"),
+                            countType(b, "TRIPLE")
+                    ));
+                });
             }
         }
 
@@ -230,7 +349,9 @@ public class ChatbotService {
                 + "\"Je n'ai pas cette information dans la base de données.\"\n"
                 + "5. Tu n'inventes RIEN. Zéro hallucination.\n"
                 + "6. Ta réponse est courte : 3 à 5 phrases maximum.\n"
-                + "7. Sois chaleureux et professionnel.\n\n"
+                + "7. Mentionne TOUJOURS le nom du foyer ET le nom du bloc dans ta réponse.\n"
+                + "   Exemple de formulation : \"Le bloc C du foyer Omrane est le plus calme.\"\n"
+                + "8. Sois chaleureux et professionnel.\n\n"
                 + "[DONNÉES]\n"
                 + dbContext
                 + "[/DONNÉES]\n\n"
@@ -249,7 +370,7 @@ public class ChatbotService {
         body.put("prompt", prompt);
         body.put("stream", false);
         body.put("options", Map.of(
-                "temperature", 0.1,   // LOW = colle aux faits, pas d'invention
+                "temperature", 0.1,
                 "num_predict", 300,
                 "top_p",       0.8
         ));
@@ -293,9 +414,10 @@ public class ChatbotService {
     }
 
     private String buildBlocDetail(Bloc bloc) {
+        String foyer = bloc.getFoyer() != null ? bloc.getFoyer().getNomFoyer() : "N/A";
         return String.format(
-                "Bloc %-12s | Simples: %d | Doubles: %d | Triples: %d | Total: %d\n",
-                bloc.getNomBloc(),
+                "Bloc %-12s | Foyer: %-15s | Simples: %d | Doubles: %d | Triples: %d | Total: %d\n",
+                bloc.getNomBloc(), foyer,
                 countType(bloc, "SIMPLE"),
                 countType(bloc, "DOUBLE"),
                 countType(bloc, "TRIPLE"),
