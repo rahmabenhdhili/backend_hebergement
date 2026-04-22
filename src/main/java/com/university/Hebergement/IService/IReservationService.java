@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface IReservationService {
     Reservation AddReservation(ReservationDTO request);
-    List<Reservation> getReservationsBetweenDates(LocalDate debut, LocalDate fin);}
+    List<Reservation> getReservationsBetweenDates(LocalDate debut, LocalDate fin);
+    Reservation annulerReservation(long cinEtudiant);
+}

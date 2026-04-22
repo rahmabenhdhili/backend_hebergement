@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, String> {
-    List<Reservation> findByDateReservationBetween(LocalDate debut, LocalDate fin);}
+    List<Reservation> findByDateReservationBetween(LocalDate debut, LocalDate fin);
+    List<Reservation> findByEtudiantsCin(Long cin);}

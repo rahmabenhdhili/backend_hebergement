@@ -90,6 +90,30 @@ public class ReservationService implements IReservationService {
         return reservations;
     }
 
+    public Reservation annulerReservation(long cinEtudiant) {
+
+        List<Reservation> reservations = reservationRepository
+                .findByEtudiantsCin(cinEtudiant);
+
+        if(reservations.isEmpty()){
+            throw new ReservationNotFoundException(
+                    "Aucune réservation trouvée pour CIN: " + cinEtudiant
+            );
+        }
+
+        // Désaffecter les étudiants
+        Reservation reservation = reservations.get(0);
+
+        // Désaffecter les relations
+        reservation.getEtudiants().clear();
+        reservation.setChambre(null);
+
+        // Supprimer la réservation
+        reservationRepository.delete(reservation);
+
+        return reservation;
+    }
+
     private int getCapacite(TypeChambre type){
         return switch(type){
             case SIMPLE -> 1;

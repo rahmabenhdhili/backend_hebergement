@@ -25,7 +25,7 @@ import java.util.List;
         @ManyToOne(fetch = FetchType.LAZY) // pour éviter les chargements inutites
         private Chambre chambre;
 
-        @ManyToMany(fetch = FetchType.LAZY)
+        @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
         private List<Etudiant> etudiants = new ArrayList<>();
     }
 
