@@ -1,6 +1,8 @@
 package com.university.Hebergement.entities;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
@@ -10,6 +12,8 @@ import java.util.List;
 
     @Entity
     @Getter @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
     public class Reservation {
 
         @Id
@@ -18,10 +22,10 @@ import java.util.List;
         private LocalDate dateReservation;
         private boolean estValide;
 
-        @ManyToOne
+        @ManyToOne(fetch = FetchType.LAZY) // pour éviter les chargements inutites
         private Chambre chambre;
 
-        @ManyToMany
+        @ManyToMany(fetch = FetchType.LAZY)
         private List<Etudiant> etudiants = new ArrayList<>();
     }
 
