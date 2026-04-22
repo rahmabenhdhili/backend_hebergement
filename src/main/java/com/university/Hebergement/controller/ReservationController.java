@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/reservations")
@@ -21,5 +24,12 @@ public class ReservationController {
     @PostMapping
     public Reservation AddReservation(@RequestBody ReservationDTO request){
         return reservationService.AddReservation(request);
+    }
+    @GetMapping("/periode")
+    public List<Reservation> getReservationsByPeriod(
+            @RequestParam LocalDate debut,
+            @RequestParam LocalDate fin) {
+
+        return reservationService.getReservationsBetweenDates(debut, fin);
     }
 }

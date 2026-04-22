@@ -6,6 +6,7 @@ import com.university.Hebergement.entities.Chambre;
 import com.university.Hebergement.entities.Etudiant;
 import com.university.Hebergement.entities.Reservation;
 import com.university.Hebergement.entities.TypeChambre;
+import com.university.Hebergement.exception.ReservationNotFoundException;
 import com.university.Hebergement.repository.ChambreRepository;
 import com.university.Hebergement.repository.EtudiantRepository;
 import com.university.Hebergement.repository.ReservationRepository;
@@ -72,6 +73,23 @@ public class ReservationService implements IReservationService {
 
         return reservationRepository.save(reservation);
     }
+
+    public List<Reservation> getReservationsBetweenDates(LocalDate debut, LocalDate fin) {
+        if (debut.isAfter(fin)) {
+            throw new RuntimeException("Date début doit être avant date fin");
+        }
+        List<Reservation> reservations =
+                reservationRepository.findByDateReservationBetween(debut, fin);
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException(
+                    "Aucune réservation trouvée entre " + debut + " et " + fin
+            );
+        }
+
+        return reservations;
+    }
+
     private int getCapacite(TypeChambre type){
         return switch(type){
             case SIMPLE -> 1;
