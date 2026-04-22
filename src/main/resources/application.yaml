@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/hebergement?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
     username: root
-    password: rania123
+    password: 
 
   jpa:
     hibernate:
