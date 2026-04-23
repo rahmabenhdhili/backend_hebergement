@@ -13,10 +13,12 @@ import com.university.Hebergement.repository.ReservationRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-
+@ControllerAdvice
 @Service
 @AllArgsConstructor
 public class ReservationService implements IReservationService {
@@ -57,21 +59,29 @@ public class ReservationService implements IReservationService {
         }
 
         //générer l'id reservation
-        Reservation reservation = new Reservation();
-        reservation.setIdReservation(
-                request.getAnneeUniversitaire() + "-" +
-                        request.getNomBloc() + "-" +
-                        request.getNumeroChambre() + "-" +
-                        request.getEtudiantsCINs().get(0)
-        );
-        reservation.setDateReservation(LocalDate.now());
-        reservation.setEstValide(true);
-        reservation.setChambre(chambre);
+        List<Reservation> savedReservations = new ArrayList<>();
+
         for (Etudiant e : etudiants) {
+
+            Reservation reservation = new Reservation();
+
+            reservation.setIdReservation(
+                    request.getAnneeUniversitaire() + "-" +
+                            request.getNomBloc() + "-" +
+                            request.getNumeroChambre() + "-" +
+                            e.getCin()
+            );
+
+            reservation.setDateReservation(LocalDate.now());
+            reservation.setEstValide(true);
+            reservation.setChambre(chambre);
+
             reservation.getEtudiants().add(e);
+
+            savedReservations.add(reservationRepository.save(reservation));
         }
 
-        return reservationRepository.save(reservation);
+        return savedReservations.get(0);
     }
 
     public List<Reservation> getReservationsBetweenDates(LocalDate debut, LocalDate fin) {
@@ -90,28 +100,21 @@ public class ReservationService implements IReservationService {
         return reservations;
     }
 
-    public Reservation annulerReservation(long cinEtudiant) {
+    public void annulerReservation(String id) {
 
-        List<Reservation> reservations = reservationRepository
-                .findByEtudiantsCin(cinEtudiant);
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Réservation introuvable"));
 
-        if(reservations.isEmpty()){
-            throw new ReservationNotFoundException(
-                    "Aucune réservation trouvée pour CIN: " + cinEtudiant
-            );
-        }
-
-        // Désaffecter les étudiants
-        Reservation reservation = reservations.get(0);
-
-        // Désaffecter les relations
+        // dissocier relations
         reservation.getEtudiants().clear();
         reservation.setChambre(null);
 
-        // Supprimer la réservation
         reservationRepository.delete(reservation);
+    }
 
-        return reservation;
+    @Override
+    public List<Reservation> getAllReservations() {
+        return reservationRepository.findAll();
     }
 
     private int getCapacite(TypeChambre type){

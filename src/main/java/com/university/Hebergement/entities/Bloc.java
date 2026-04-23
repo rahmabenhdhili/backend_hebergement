@@ -1,5 +1,6 @@
 package com.university.Hebergement.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class Bloc {
     @JsonIgnoreProperties("blocs")
     private Foyer foyer;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "bloc",
             cascade = CascadeType.ALL,
             orphanRemoval = true)   // ← AJOUTE ÇA

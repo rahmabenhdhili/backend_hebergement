@@ -32,8 +32,13 @@ public class ReservationController {
 
         return reservationService.getReservationsBetweenDates(debut, fin);
     }
-    @DeleteMapping("/annuler/{cin}")
-    public Reservation annulerReservation(@PathVariable long cin) {
-        return reservationService.annulerReservation(cin);
+    @DeleteMapping("/annuler/{id}")
+    public void annulerReservation(@PathVariable String id) {
+        reservationService.annulerReservation(id);
+    }
+
+    @GetMapping
+    public List<Reservation> getAllReservations() {
+        return reservationService.getAllReservations();
     }
 }

@@ -1,4 +1,5 @@
 package com.university.Hebergement.entities;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,6 +24,7 @@ import java.util.List;
         private boolean estValide;
 
         @ManyToOne(fetch = FetchType.LAZY) // pour éviter les chargements inutites
+        @JsonIgnore
         private Chambre chambre;
 
         @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
