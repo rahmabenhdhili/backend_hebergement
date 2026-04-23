@@ -20,7 +20,7 @@ public class Foyer {
     private String nomFoyer;
     private Long capaciteFoyer;
 
-    @OneToMany(mappedBy = "foyer", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "foyer")
     @JsonIgnoreProperties("foyer")  // ✅ affiche les blocs mais ignore leur référence au foyer
     private List<Bloc> blocs = new ArrayList<>();
 }

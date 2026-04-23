@@ -23,11 +23,11 @@ import java.util.List;
         private LocalDate dateReservation;
         private boolean estValide;
 
-        @ManyToOne(fetch = FetchType.LAZY) // pour éviter les chargements inutites
+        @ManyToOne
         @JsonIgnore
         private Chambre chambre;
 
-        @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+        @ManyToMany
         private List<Etudiant> etudiants = new ArrayList<>();
     }
 
