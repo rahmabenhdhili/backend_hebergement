@@ -1,5 +1,6 @@
 package com.university.Hebergement.service;
 
+import com.university.Hebergement.DTO.ChambreDTO;
 import com.university.Hebergement.IService.IChambreService;
 import com.university.Hebergement.entities.Chambre;
 import com.university.Hebergement.repository.ChambreRepository;
@@ -17,13 +18,19 @@ public class ChambreService implements IChambreService {
     ChambreRepository chambreRepository;
 
     @Override
-    public List<Chambre> getChambresByBloc(String nomBloc) {
+    public List<ChambreDTO> getChambresByBloc(String nomBloc) {
         List<Chambre> chambres = chambreRepository.findByBlocNomBloc(nomBloc);
 
         if (chambres.isEmpty()) {
             throw new RuntimeException("Aucune chambre trouvée pour le bloc : " + nomBloc);
         }
 
-        return chambres;
+        return chambres.stream().map(chambre -> {
+            ChambreDTO dto = new ChambreDTO();
+            dto.setNumeroChambre(chambre.getNumeroChambre());
+            dto.setType(chambre.getType().name());
+
+            return dto;
+        }).toList();
     }
 }

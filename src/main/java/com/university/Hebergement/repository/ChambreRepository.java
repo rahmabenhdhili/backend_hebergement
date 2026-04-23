@@ -1,5 +1,6 @@
 package com.university.Hebergement.repository;
 
+import com.university.Hebergement.DTO.ChambreDTO;
 import com.university.Hebergement.entities.Bloc;
 import com.university.Hebergement.entities.Chambre;
 import com.university.Hebergement.entities.TypeChambre;

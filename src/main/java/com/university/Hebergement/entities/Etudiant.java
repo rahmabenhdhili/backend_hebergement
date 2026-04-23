@@ -1,5 +1,6 @@
 package com.university.Hebergement.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,9 +25,11 @@ public class Etudiant {
     private String nom;
     private String prenom;
     private LocalDate dateNaissance;
+    @JsonIgnore
     @ManyToOne
     private Universite universite;
 
     @ManyToMany(mappedBy = "etudiants")
+    @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
 }

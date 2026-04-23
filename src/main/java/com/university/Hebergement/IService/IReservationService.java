@@ -9,5 +9,6 @@ import java.util.List;
 public interface IReservationService {
     Reservation AddReservation(ReservationDTO request);
     List<Reservation> getReservationsBetweenDates(LocalDate debut, LocalDate fin);
-    Reservation annulerReservation(long cinEtudiant);
+    void annulerReservation(String id);
+    List<Reservation> getAllReservations();
 }

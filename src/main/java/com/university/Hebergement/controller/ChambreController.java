@@ -1,5 +1,6 @@
 package com.university.Hebergement.controller;
 
+import com.university.Hebergement.DTO.ChambreDTO;
 import com.university.Hebergement.entities.Chambre;
 import com.university.Hebergement.service.ChambreService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class ChambreController {
     private final ChambreService chambreService;
 
     @GetMapping("/bloc/{nomBloc}")
-    public List<Chambre> getByBloc(@PathVariable String nomBloc) {
+    public List<ChambreDTO> getByBloc(@PathVariable String nomBloc) {
         return chambreService.getChambresByBloc(nomBloc);
     }
 }
