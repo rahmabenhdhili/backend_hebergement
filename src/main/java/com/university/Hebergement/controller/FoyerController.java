@@ -1,10 +1,12 @@
 package com.university.Hebergement.controller;
 
+import com.university.Hebergement.entities.Chambre;
+import com.university.Hebergement.entities.Foyer;
+import com.university.Hebergement.entities.TypeChambre;
+import com.university.Hebergement.service.FoyerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.university.Hebergement.entities.Foyer;
-import com.university.Hebergement.service.FoyerService;
 
 import java.util.List;
 
@@ -19,7 +21,6 @@ public class FoyerController {
         this.foyerService = foyerService;
     }
 
-    // CREATE — returns 201 + body, 409 if duplicate
     @PostMapping("/add")
     public ResponseEntity<?> addFoyer(@RequestBody Foyer foyer) {
         try {
@@ -29,7 +30,6 @@ public class FoyerController {
         }
     }
 
-    // UPDATE — returns 409 if duplicate name
     @PutMapping("/update")
     public ResponseEntity<?> updateFoyer(@RequestBody Foyer foyer) {
         try {
@@ -39,28 +39,33 @@ public class FoyerController {
         }
     }
 
-    // DELETE — returns 204
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFoyer(@PathVariable Long id) {
         foyerService.deleteFoyer(id);
         return ResponseEntity.noContent().build();
     }
 
-    // GET BY ID
     @GetMapping("/{id}")
     public ResponseEntity<Foyer> getById(@PathVariable Long id) {
         return ResponseEntity.ok(foyerService.getFoyerById(id));
     }
 
-    // GET ALL
     @GetMapping("/all")
     public List<Foyer> getAll() {
         return foyerService.getAllFoyers();
     }
 
-    // SEARCH — GET /foyer/search?keyword=xxx
     @GetMapping("/search")
     public List<Foyer> search(@RequestParam String keyword) {
         return foyerService.searchFoyers(keyword);
+    }
+
+    @GetMapping("/chambresDisponibles")
+    public ResponseEntity<List<Chambre>> getChambresDisponibles(
+            @RequestParam String nomFoyer,
+            @RequestParam TypeChambre type) {
+        return ResponseEntity.ok(
+                foyerService.getChambresNonReserveParNomFoyerEtTypeChambre(nomFoyer, type)
+        );
     }
 }
